@@ -982,6 +982,8 @@ static SDL_Cursor *MagCursor(bool hot) {
 void driver_base::set_video_mode(int flags)
 {
 	int depth = sdl_depth_of_video_depth(VIDEO_MODE_DEPTH);
+	printf("DEBUG: Setting video mode - VIDEO_MODE_DEPTH=%d, sdl_depth=%d, resolution=%dx%d\n", 
+	       VIDEO_MODE_DEPTH, depth, VIDEO_MODE_X, VIDEO_MODE_Y);
 	if ((s = init_sdl_video(VIDEO_MODE_X, VIDEO_MODE_Y, depth, flags)) == NULL)
 		return;
 #ifdef ENABLE_VOSF
@@ -1065,6 +1067,8 @@ void driver_base::adapt_to_video_mode() {
 	visualFormat.Rmask = f->Rmask;
 	visualFormat.Gmask = f->Gmask;
 	visualFormat.Bmask = f->Bmask;
+	printf("DEBUG: Mac sees depth=%d bits (VIDEO_MODE_DEPTH=%d)\n", 
+	       mac_depth_of_video_depth(VIDEO_MODE_DEPTH), VIDEO_MODE_DEPTH);
 	Screen_blitter_init(visualFormat, true, mac_depth_of_video_depth(VIDEO_MODE_DEPTH));
 
 	// Load gray ramp to 8->16/32 expand map
@@ -1385,6 +1389,7 @@ bool VideoInit(bool classic)
 	mode_str = PrefsFindString("screen");
 	// Determine display type and default dimensions
 	int default_width, default_height;
+	int prefs_depth = 0;  // 0 means use default
 	if (classic) {
 		default_width = 512;
 		default_height = 342;
@@ -1395,10 +1400,12 @@ bool VideoInit(bool classic)
 	}
 	display_type = DISPLAY_WINDOW;
 	if (mode_str) {
-		if (sscanf(mode_str, "win/%d/%d", &default_width, &default_height) == 2)
+		// Try to parse with depth first (e.g., "win/1024/768/8")
+		if (sscanf(mode_str, "win/%d/%d/%d", &default_width, &default_height, &prefs_depth) >= 2)
 			display_type = DISPLAY_WINDOW;
-		else if (sscanf(mode_str, "dga/%d/%d", &default_width, &default_height) == 2)
+		else if (sscanf(mode_str, "dga/%d/%d/%d", &default_width, &default_height, &prefs_depth) >= 2)
 			display_type = DISPLAY_SCREEN;
+		printf("DEBUG: Parsed screen prefs - %dx%d depth=%d\n", default_width, default_height, prefs_depth);
 	}
 	if (default_width <= 0)
 		default_width = sdl_display_width();
@@ -1413,26 +1420,63 @@ bool VideoInit(bool classic)
 	if (classic) {
 		default_width = (default_width / 8) * 8;
 	}
-	// Mac screen depth follows X depth
-	screen_depth = 32;
-	SDL_DisplayMode desktop_mode;
-	if (SDL_GetDesktopDisplayMode(0, &desktop_mode) == 0) {
-		screen_depth = SDL_BITSPERPIXEL(desktop_mode.format);
-	}
+	// Mac screen depth - use prefs if specified, otherwise follow host depth
 	int default_depth;
-	switch (screen_depth) {
-	case 8:
-		default_depth = VIDEO_DEPTH_8BIT;
-		break;
-	case 15: case 16:
-		default_depth = VIDEO_DEPTH_16BIT;
-		break;
-	case 24: case 32:
-		default_depth = VIDEO_DEPTH_32BIT;
-		break;
-	default:
-		default_depth =  VIDEO_DEPTH_1BIT;
-		break;
+	if (prefs_depth > 0) {
+		// User specified depth in preferences
+		printf("DEBUG: Using depth from prefs: %d bits\n", prefs_depth);
+		switch (prefs_depth) {
+		case 1:
+			default_depth = VIDEO_DEPTH_1BIT;
+			screen_depth = 1;
+			break;
+		case 2:
+			default_depth = VIDEO_DEPTH_2BIT;
+			screen_depth = 2;
+			break;
+		case 4:
+			default_depth = VIDEO_DEPTH_4BIT;
+			screen_depth = 4;
+			break;
+		case 8:
+			default_depth = VIDEO_DEPTH_8BIT;
+			screen_depth = 8;
+			break;
+		case 15: case 16:
+			default_depth = VIDEO_DEPTH_16BIT;
+			screen_depth = 16;
+			break;
+		case 24: case 32:
+			default_depth = VIDEO_DEPTH_32BIT;
+			screen_depth = 32;
+			break;
+		default:
+			printf("WARNING: Invalid depth %d in prefs, using 32-bit\n", prefs_depth);
+			default_depth = VIDEO_DEPTH_32BIT;
+			screen_depth = 32;
+			break;
+		}
+	} else {
+		// No depth specified, follow host display depth
+		screen_depth = 32;
+		SDL_DisplayMode desktop_mode;
+		if (SDL_GetDesktopDisplayMode(0, &desktop_mode) == 0) {
+			screen_depth = SDL_BITSPERPIXEL(desktop_mode.format);
+		}
+		switch (screen_depth) {
+		case 8:
+			default_depth = VIDEO_DEPTH_8BIT;
+			break;
+		case 15: case 16:
+			default_depth = VIDEO_DEPTH_16BIT;
+			break;
+		case 24: case 32:
+			default_depth = VIDEO_DEPTH_32BIT;
+			break;
+		default:
+			default_depth =  VIDEO_DEPTH_1BIT;
+			break;
+		}
 	}
 
 	// Initialize list of video modes to try
