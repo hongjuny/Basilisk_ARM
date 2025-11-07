@@ -213,7 +213,7 @@ typedef struct timeval tm_time_t;
 typedef uae_u32 uaecptr;
 
 /* Alignment restrictions */
-#if defined(__i386__) || defined(__powerpc__) || defined(__m68k__) || defined(__x86_64__) || defined(__aarch64__) || defined(__arm64__)
+#if defined(__i386__) || defined(__powerpc__) || defined(__m68k__) || defined(__x86_64__)
 # define CPU_CAN_ACCESS_UNALIGNED
 #endif
 
