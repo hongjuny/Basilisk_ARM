@@ -436,6 +436,38 @@ static inline uae_u32 do_byteswap_32(uae_u32 v) {__asm__ ("bswap %0" : "=r" (v) 
 #define HAVE_OPTIMIZED_BYTESWAP_16
 static inline uae_u32 do_byteswap_16(uae_u32 v) {__asm__ ("bswapl %0" : "=&r" (v) : "0" (v << 16) : "cc"); return v;}
 
+#elif defined(__aarch64__) || defined(__arm64__)
+
+/* ARM64 - use REV instruction for efficient byte swapping */
+static inline uae_u32 do_get_mem_long(uae_u32 *a) {
+    uint32 retval;
+    __asm__ ("ldr %w0, [%1]\n\trev %w0, %w0" : "=r" (retval) : "r" (a) : "memory");
+    return retval;
+}
+static inline uae_u32 do_get_mem_word(uae_u16 *a) {
+    uint32 retval;
+    __asm__ ("ldrh %w0, [%1]\n\trev16 %w0, %w0" : "=r" (retval) : "r" (a) : "memory");
+    return retval;
+}
+#define HAVE_GET_WORD_UNSWAPPED
+#define do_get_mem_word_unswapped(a) ((uae_u32)*((uae_u16 *)(a)))
+static inline void do_put_mem_long(uae_u32 *a, uae_u32 v) {
+    __asm__ ("rev %w0, %w0\n\tstr %w0, [%1]" : : "r" (v), "r" (a) : "memory");
+}
+static inline void do_put_mem_word(uae_u16 *a, uae_u32 v) {
+    __asm__ ("rev16 %w0, %w0\n\tstrh %w0, [%1]" : : "r" (v), "r" (a) : "memory");
+}
+#define HAVE_OPTIMIZED_BYTESWAP_32
+static inline uae_u32 do_byteswap_32(uae_u32 v) {
+    __asm__ ("rev %w0, %w0" : "+r" (v));
+    return v;
+}
+#define HAVE_OPTIMIZED_BYTESWAP_16
+static inline uae_u32 do_byteswap_16(uae_u32 v) {
+    __asm__ ("rev16 %w0, %w0" : "+r" (v));
+    return v;
+}
+
 #elif defined(CPU_CAN_ACCESS_UNALIGNED)
 
 /* Other little-endian CPUs which can do unaligned accesses */

@@ -12,7 +12,7 @@
 #### Stage 2: Visible Improvements (2-4 hours each)
 4. [x] **Fix yellow screen bug** - RGBA channel order, FIXED!
 5. [x] **Fix color depth parsing** - Games now detect correct color modes
-6. [ ] **Fix audio/sound issue** - SDL audio not producing sound
+6. [x] **Audio issue resolved** - Works with System 7.5.3 + Centris ROM
 7. [ ] **ARM64 byte swapping** - Assembly optimization, 10-15% faster
 8. [ ] **Add memory barriers** - Stability improvement
 
@@ -35,11 +35,21 @@
 ### User-Reported Issues (CRITICAL)
 - [x] **Display color corruption** - FIXED! Changed ARGB to BGRA
 - [x] **Color depth detection** - FIXED! Games now detect correct modes
-- [ ] **Audio not working** - SDL audio initialized but no sound output
-- [ ] **Cannot quit application** - Must force quit to exit
+- [x] **Audio working** - System 7.5.3 + Centris ROM combination works perfectly
+- [ ] **Cannot quit application** - Must force quit to exit (needs refinement)
 - [ ] **Outdated preferences** - ~/.basilisk_ii_prefs file is old-school, needs GUI
 - [ ] **ROM file selection** - Need easier ROM file picker
 - [ ] **No drag-and-drop** - Disk mounting should support drag-and-drop like vMac
+
+### Audio Notes
+**Issue:** Audio appeared not to work initially
+**Root Cause:** ROM/System version compatibility
+**Solution:** Use System 7.5.3 with Centris ROM
+**Technical Details:**
+- SDL audio backend works correctly
+- Audio callback receives data when Mac OS uses sound
+- num_sources=0 means Mac OS isn't using audio (not a driver issue)
+- Different ROM/System combinations have different audio compatibility
 
 ### Long-term Vision
 - [ ] Replace SDL2 with native Metal rendering

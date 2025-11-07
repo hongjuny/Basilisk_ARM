@@ -217,6 +217,12 @@ void audio_exit_stream()
 
 static void stream_func(void *arg, uint8 *stream, int stream_len)
 {
+	static int callback_count = 0;
+	if (callback_count < 5) {
+		printf("DEBUG: Audio callback #%d - num_sources=%d, stream_len=%d\n", 
+		       callback_count++, AudioStatus.num_sources, stream_len);
+	}
+	
 	if (AudioStatus.num_sources) {
 		// Trigger audio interrupt to get new buffer
 		D(bug("stream: triggering irq\n"));
