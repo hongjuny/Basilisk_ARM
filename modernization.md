@@ -10,19 +10,22 @@
 3. [ ] **Fix quit issue** - Event loop fix, immediately noticeable
 
 #### Stage 2: Visible Improvements (2-4 hours each)
-4. [ ] **Fix yellow screen bug** - RGBA channel order, most visible fix
-5. [ ] **ARM64 byte swapping** - Assembly optimization, 10-15% faster
-6. [ ] **Add memory barriers** - Stability improvement
+4. [x] **Fix yellow screen bug** - RGBA channel order, FIXED!
+5. [x] **Fix color depth parsing** - Games now detect correct color modes
+6. [ ] **Fix audio/sound issue** - SDL audio not producing sound
+7. [ ] **ARM64 byte swapping** - Assembly optimization, 10-15% faster
+8. [ ] **Add memory barriers** - Stability improvement
 
 #### Stage 3: User Experience (1-2 days each)
-7. [ ] **ROM file picker** - Native file dialog
-8. [ ] **Drag-and-drop disk mounting** - Like vMac
-9. [ ] **Modern preferences GUI** - Replace text file config
+9. [ ] **ROM file picker** - Native file dialog
+10. [ ] **Drag-and-drop disk mounting** - Like vMac
+11. [ ] **Modern preferences GUI** - Replace text file config
+12. [ ] **Project structure cleanup** - Move xcodeproj to root, remove other platforms
 
 #### Stage 4: Major Refactoring (1-2 weeks each)
-10. [ ] **Replace SDL2 video with Metal** - Native rendering
-11. [ ] **Replace SDL audio with CoreAudio** - Lower latency
-12. [ ] **Full macOS integration** - Notifications, services, etc.
+13. [ ] **Replace SDL2 video with Metal** - Native rendering
+14. [ ] **Replace SDL audio with CoreAudio** - Lower latency
+15. [ ] **Full macOS integration** - Notifications, services, etc.
 
 ### Current Sprint: Stage 1 (This Week)
 - [ ] ARM64 unaligned access support
@@ -30,7 +33,9 @@
 - [ ] Fix application quit issue
 
 ### User-Reported Issues (CRITICAL)
-- [ ] **Display color corruption** - Gray appears yellow (RGBA channel order issue)
+- [x] **Display color corruption** - FIXED! Changed ARGB to BGRA
+- [x] **Color depth detection** - FIXED! Games now detect correct modes
+- [ ] **Audio not working** - SDL audio initialized but no sound output
 - [ ] **Cannot quit application** - Must force quit to exit
 - [ ] **Outdated preferences** - ~/.basilisk_ii_prefs file is old-school, needs GUI
 - [ ] **ROM file selection** - Need easier ROM file picker

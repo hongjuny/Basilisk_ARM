@@ -514,14 +514,20 @@ void QuitEmuNoExit()
 	PrefsExit();
 }
 
+// From newcpu.cpp
+extern bool quit_program;
+
 void QuitEmulator(void)
 {
+	// Signal emulator thread to stop
+	quit_program = true;
+	
 	QuitEmuNoExit();
 
-	// Stop run loop?
+	// Stop run loop - let NSApp terminate gracefully instead of exit()
 	[NSApp terminate: nil];
-
-	exit(0);
+	
+	// Note: exit(0) removed to allow proper cleanup and graceful termination
 }
 
 

@@ -133,12 +133,10 @@
 
 	if ( count > 0 )
 	{
-		if ( count > 1 )
-			stillRunningMessage = "Emulators are still running\nExiting Basilisk may lose data";
-		else
-			stillRunningMessage = "Emulator is still running\nExiting Basilisk may lose data";
-		if ( ! ChoiceAlert(stillRunningMessage, "Exit", "Continue") )
-			return NSTerminateCancel;				// NSTerminateLater?
+		// Emulator is running - don't allow Cmd+Q to quit
+		// User should use "Shut Down" inside the emulator, or close the window
+		NSLog(@"Emulator is running, blocking Cmd+Q termination");
+		return NSTerminateCancel;
 	}
 
 	return NSTerminateNow;
