@@ -91,10 +91,18 @@ static pthread_mutex_t intflag_lock = PTHREAD_MUTEX_INITIALIZER;	// Mutex to pro
 #define LOCK_INTFLAGS pthread_mutex_lock(&intflag_lock)
 #define UNLOCK_INTFLAGS pthread_mutex_unlock(&intflag_lock)
 
+// Memory barrier for ARM64 weak memory model
+#if defined(__aarch64__) || defined(__arm64__)
+#define MEMORY_BARRIER() __asm__ __volatile__ ("dmb ish" ::: "memory")
+#else
+#define MEMORY_BARRIER() __asm__ __volatile__ ("" ::: "memory")
+#endif
+
 #else
 
 #define LOCK_INTFLAGS
 #define UNLOCK_INTFLAGS
+#define MEMORY_BARRIER()
 
 #endif
 
@@ -685,6 +693,7 @@ void SetInterruptFlag(uint32 flag)
 {
 	LOCK_INTFLAGS;
 	InterruptFlags |= flag;
+	MEMORY_BARRIER();  // Ensure flag is visible to other threads
 	UNLOCK_INTFLAGS;
 }
 
@@ -692,6 +701,7 @@ void ClearInterruptFlag(uint32 flag)
 {
 	LOCK_INTFLAGS;
 	InterruptFlags &= ~flag;
+	MEMORY_BARRIER();  // Ensure flag change is visible to other threads
 	UNLOCK_INTFLAGS;
 }
 
