@@ -180,28 +180,48 @@ extern string UserPrefsPath;	// from prefs_unix.cpp
 - (IBAction) AddSCSI: (id)sender
 {
 	NSOpenPanel *oP = [NSOpenPanel openPanel];
-
-	if ( [oP runModalForDirectory:home file:nil types:nil] == NSOKButton )
-	{
-		[SCSIds addInt: -1
-			  withPath: [oP filename] ];
-		[SCSIdisks reloadData];
-		edited = YES;
+	[oP setCanChooseFiles: YES];
+	[oP setCanChooseDirectories: NO];
+	[oP setAllowsMultipleSelection: NO];
+	[oP setTitle: @"Add SCSI Device"];
+	[oP setMessage: @"Select a SCSI device image"];
+	if (home) {
+		[oP setDirectoryURL:[NSURL fileURLWithPath:home]];
 	}
+	
+	[oP beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result) {
+		if (result == NSModalResponseOK) {
+			NSURL *selectedURL = [[oP URLs] firstObject];
+			NSString *path = [selectedURL path];
+			[SCSIds addInt: -1 withPath: path];
+			[SCSIdisks reloadData];
+			edited = YES;
+		}
+	}];
 }
 
 - (IBAction) AddVolume: (id)sender
 {
 	NSOpenPanel *oP = [NSOpenPanel openPanel];
-
-	if ( [oP runModalForDirectory:home file:nil types:nil] == NSOKButton )
-	{
-		[volsDS addObject: (NSObject *) locked
-				 withPath: [oP filename] ];
-		PrefsAddString("disk", [[oP filename] UTF8String]);
-		[diskImages reloadData];
-		edited = YES;
+	[oP setCanChooseFiles: YES];
+	[oP setCanChooseDirectories: NO];
+	[oP setAllowsMultipleSelection: NO];
+	[oP setTitle: @"Add Disk Image"];
+	[oP setMessage: @"Select a disk image file"];
+	if (home) {
+		[oP setDirectoryURL:[NSURL fileURLWithPath:home]];
 	}
+	
+	[oP beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result) {
+		if (result == NSModalResponseOK) {
+			NSURL *selectedURL = [[oP URLs] firstObject];
+			NSString *path = [selectedURL path];
+			[volsDS addObject: (NSObject *) locked withPath: path];
+			PrefsAddString("disk", [path UTF8String]);
+			[diskImages reloadData];
+			edited = YES;
+		}
+	}];
 }
 
 - (IBAction) BrowseExtFS:	(id)sender
@@ -245,16 +265,31 @@ extern string UserPrefsPath;	// from prefs_unix.cpp
 	NSOpenPanel *oP = [NSOpenPanel openPanel];
 
 	[oP setCanChooseFiles: YES];
+	[oP setCanChooseDirectories: NO];
+	[oP setAllowsMultipleSelection: NO];
 	[oP setTitle:  @"Open a ROM file"];
-	D(NSLog(@"%s - home = %@", __PRETTY_FUNCTION__, home));
-	if ( [oP runModalForDirectory: ([ROMfile stringValue] ? [ROMfile stringValue] : home)
-							 file:nil
-							types:nil] == NSOKButton )
-	{
-		[ROMfile setStringValue: [oP filename] ];
-		PrefsReplaceString("rom", [[oP filename] UTF8String]);
-		edited = YES;
+	[oP setMessage: @"Select a Macintosh ROM file"];
+	[oP setPrompt: @"Open"];
+	
+	// Set initial directory
+	NSString *currentROM = [ROMfile stringValue];
+	if (currentROM && [currentROM length] > 0) {
+		NSURL *currentURL = [NSURL fileURLWithPath:currentROM];
+		[oP setDirectoryURL:[currentURL URLByDeletingLastPathComponent]];
+	} else if (home) {
+		[oP setDirectoryURL:[NSURL fileURLWithPath:home]];
 	}
+	
+	// Modern API for macOS 10.6+
+	[oP beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result) {
+		if (result == NSModalResponseOK) {
+			NSURL *selectedURL = [[oP URLs] firstObject];
+			NSString *path = [selectedURL path];
+			[ROMfile setStringValue:path];
+			PrefsReplaceString("rom", [path UTF8String]);
+			edited = YES;
+		}
+	}];
 }
 
 #include <cdrom.h>			// for CDROMRefNum

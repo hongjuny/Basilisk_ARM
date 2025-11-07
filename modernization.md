@@ -9,12 +9,12 @@
 2. [ ] **Xcode compiler flags** - 15 min work, 5-10% faster  
 3. [ ] **Fix quit issue** - Event loop fix, immediately noticeable
 
-#### Stage 2: Visible Improvements (2-4 hours each)
+#### Stage 2: Visible Improvements (2-4 hours each) ✅ COMPLETE
 4. [x] **Fix yellow screen bug** - RGBA channel order, FIXED!
 5. [x] **Fix color depth parsing** - Games now detect correct color modes
 6. [x] **Audio issue resolved** - Works with System 7.5.3 + Centris ROM
-7. [ ] **ARM64 byte swapping** - Assembly optimization, 10-15% faster
-8. [ ] **Add memory barriers** - Stability improvement
+7. [x] **ARM64 byte swapping** - Assembly optimization, DONE!
+8. [x] **Add memory barriers** - Stability improvement, DONE!
 
 #### Stage 3: User Experience (1-2 days each)
 9. [ ] **ROM file picker** - Native file dialog

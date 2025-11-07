@@ -429,17 +429,39 @@ bool InitEmulator (void)
 	
 	// Get rom file path from preferences
 	const char *rom_path = PrefsFindString("rom");
-	if ( ! rom_path )
-	  if ( bundle )
-		WarningAlert("No rom pathname set. Trying BasiliskII.app/ROM");
-	  else
-		WarningAlert("No rom pathname set. Trying ./ROM");
-
-	// Load Mac ROM
-	int rom_fd = open(rom_path ? rom_path : ROM_FILE_NAME, O_RDONLY);
+	int rom_fd = -1;
+	
+	// Try to open ROM file
+	if (rom_path) {
+		rom_fd = open(rom_path, O_RDONLY);
+	}
+	if (rom_fd < 0 && !rom_path) {
+		rom_fd = open(ROM_FILE_NAME, O_RDONLY);
+	}
+	
+	// If ROM file not found, prompt user to select one
 	if (rom_fd < 0) {
-		ErrorAlert(STR_NO_ROM_FILE_ERR);
-		QuitEmulator();
+		NSOpenPanel *openPanel = [NSOpenPanel openPanel];
+		[openPanel setCanChooseFiles:YES];
+		[openPanel setCanChooseDirectories:NO];
+		[openPanel setAllowsMultipleSelection:NO];
+		[openPanel setTitle:@"Select ROM File"];
+		[openPanel setMessage:@"Basilisk II needs a Macintosh ROM file to run.\nPlease select a ROM file (e.g., Quadra-650.ROM, Centris.ROM)"];
+		[openPanel setPrompt:@"Select"];
+		
+		if ([openPanel runModal] == NSModalResponseOK) {
+			NSURL *selectedURL = [[openPanel URLs] firstObject];
+			NSString *path = [selectedURL path];
+			rom_path = [path UTF8String];
+			PrefsReplaceString("rom", rom_path);
+			SavePrefs();
+			rom_fd = open(rom_path, O_RDONLY);
+		}
+		
+		if (rom_fd < 0) {
+			ErrorAlert("No ROM file selected. Cannot start emulator.");
+			QuitEmulator();
+		}
 	}
 	printf(GetString(STR_READING_ROM_FILE));
 	ROMSize = lseek(rom_fd, 0, SEEK_END);
