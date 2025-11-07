@@ -998,6 +998,7 @@
 					"$(inherited)",
 					HAVE_CONFIG_H,
 					"USE_XCODE=1",
+					ENABLE_SDL2,
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
