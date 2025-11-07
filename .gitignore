@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode
+build/
+DerivedData/
+*.xccheckout
+*.xcscmblueprint
+
+# Xcode user data (do not commit local schemes/workspace state)
+**/*.xcworkspace/xcuserdata/
+**/*.xcodeproj/xcuserdata/
+**/*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Logs
+*.log
+
+# Editor/IDE
+.vscode/
+.idea/
+
+# BasiliskII specific build products (if any extra)
+BasiliskII.app/
+
+# Homebrew local
+/opt/homebrew/**
