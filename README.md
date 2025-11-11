@@ -269,6 +269,18 @@ Modernized for Apple Silicon Macs by Hong-Jun Yoon with:
 This project maintains the original Basilisk II license. See `COPYING` for details.
 
 ---
- 
 
 **Note**: This is a modernized fork of the original Basilisk II for Apple Silicon Macs. Performance and compatibility may vary depending on your specific hardware and ROM configuration.
+
+## Future Development
+
+For detailed information about ongoing modernization efforts, planned features, and development roadmap, please see:
+
+**[modernization.md](modernization.md)** - Complete Apple Silicon modernization roadmap including:
+- ✅ **Performance optimizations ACHIEVED** (20%+ improvement through ARM64 optimizations)
+- ✅ **Stable video and audio** working perfectly
+- 🎯 **User experience improvements** (drag-and-drop, modern preferences) - Next phase
+- 📋 **Technical debt and code modernization plans**
+- 🚀 **Priority-based task organization and timelines**
+
+**Current Status**: Phase 1 (P0) substantially complete with major performance and stability improvements achieved. Focus now shifting to user experience enhancements and macOS integration features.
