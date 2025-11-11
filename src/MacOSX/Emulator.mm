@@ -79,20 +79,20 @@
 	// We do this so that we can work out if we are in full screen mode:
 	parse_screen_prefs(PrefsFindString("screen"));
 
-	[self createThreads];
-
 	return self;
 }
 
 - (void) awakeFromNib
 {
+	NSLog(@"DEBUG: awakeFromNib called");
+	
+	[self createThreads];
+	
 	the_win = win;					// Set global for access by Basilisk C++ code
-
 
 	[win setDelegate: self];		// Enable windowShouldClose calling
 
 	// Try to speed up everything
-	//[win setHasShadow: NO];		// This causes view & window to now be drawn correctly
 	[win useOptimizedDrawing: YES];			
 
 	[win makeKeyAndOrderFront:self];
@@ -102,13 +102,14 @@
 	else
 		[speed setFloatValue: 60.0];
 
-
 	if ( runOrPause == nil )
 		NSLog(@"%s - runOrPause button pointer is nil!", __PRETTY_FUNCTION__);
 
 	[self runUpdate];
+	
+	// Add settings menu
+	[self createSettingsMenu];
 }
-
 
 // Helpers which other classes use to access our private stuff
 
@@ -131,8 +132,275 @@
 	[win setDocumentEdited: uaeCreated];	// Set the little dimple in the close button
 }
 
+// Check if ROM file exists, prompt user if not
+- (void) checkROMFile
+{
+	const char *rom_path = PrefsFindString("rom");
+	int rom_fd = -1;
+	
+	printf("DEBUG: checkROMFile called\n");
+	if (rom_path) {
+		printf("DEBUG: ROM path from prefs: %s\n", rom_path);
+		rom_fd = open(rom_path, O_RDONLY);
+		printf("DEBUG: ROM file open result: %d\n", rom_fd);
+	} else {
+		printf("DEBUG: No ROM path in prefs\n");
+	}
+	if (rom_fd < 0 && !rom_path) {
+		printf("DEBUG: Trying default ROM file\n");
+		rom_fd = open("ROM", O_RDONLY);
+		printf("DEBUG: Default ROM open result: %d\n", rom_fd);
+	}
+	
+	// If ROM file not found, prompt user to select one
+	if (rom_fd < 0) {
+		printf("DEBUG: Showing ROM file picker\n");
+		NSOpenPanel *openPanel = [NSOpenPanel openPanel];
+		[openPanel setCanChooseFiles:YES];
+		[openPanel setCanChooseDirectories:NO];
+		[openPanel setAllowsMultipleSelection:NO];
+		[openPanel setTitle:@"Select ROM File"];
+		[openPanel setMessage:@"Basilisk II needs a Macintosh ROM file to run.\nPlease select a ROM file (e.g., Quadra-650.ROM, Centris.ROM)"];
+		[openPanel setPrompt:@"Select"];
+		
+		if ([openPanel runModal] == NSModalResponseOK) {
+			NSURL *selectedURL = [[openPanel URLs] firstObject];
+			NSString *path = [selectedURL path];
+			rom_path = [path UTF8String];
+			printf("DEBUG: User selected ROM: %s\n", rom_path);
+			PrefsReplaceString("rom", rom_path);
+			SavePrefs();
+			rom_fd = open(rom_path, O_RDONLY);
+			printf("DEBUG: Selected ROM open result: %d\n", rom_fd);
+		}
+		
+		if (rom_fd < 0) {
+			printf("DEBUG: No ROM selected, exiting\n");
+			NSAlert *alert = [[NSAlert alloc] init];
+			[alert setMessageText:@"No ROM File Selected"];
+			[alert setInformativeText:@"Basilisk II cannot start without a ROM file. Please select a valid Macintosh ROM file."];
+			[alert addButtonWithTitle:@"Exit"];
+			[alert runModal];
+			[alert release];
+			exit(1);
+		}
+		close(rom_fd);
+	} else {
+		printf("DEBUG: ROM file found, closing fd\n");
+		close(rom_fd);
+	}
+	
+	// Verify ROM is still in prefs
+	const char *final_rom = PrefsFindString("rom");
+	printf("DEBUG: Final ROM in prefs: %s\n", final_rom ? final_rom : "NULL");
+}
+
+// Create basic settings menu
+- (void) createSettingsMenu
+{
+	// Get main menu
+	NSMenu *mainMenu = [NSApp mainMenu];
+	
+	// Create Settings menu
+	NSMenuItem *settingsMenuItem = [[NSMenuItem alloc] initWithTitle:@"Settings" action:nil keyEquivalent:@""];
+	NSMenu *settingsMenu = [[NSMenu alloc] initWithTitle:@"Settings"];
+	[settingsMenuItem setSubmenu:settingsMenu];
+	
+	// Add menu items
+	NSMenuItem *romItem = [[NSMenuItem alloc] initWithTitle:@"Select ROM File..." action:@selector(selectROMFile:) keyEquivalent:@""];
+	[romItem setTarget:self];
+	[settingsMenu addItem:romItem];
+	
+	NSMenuItem *diskItem = [[NSMenuItem alloc] initWithTitle:@"Mount Disk Image..." action:@selector(selectDiskImage:) keyEquivalent:@""];
+	[diskItem setTarget:self];
+	[settingsMenu addItem:diskItem];
+	
+	NSMenuItem *memoryItem = [[NSMenuItem alloc] initWithTitle:@"Set Memory Size..." action:@selector(setMemorySize:) keyEquivalent:@""];
+	[memoryItem setTarget:self];
+	[settingsMenu addItem:memoryItem];
+	
+	NSMenuItem *screenItem = [[NSMenuItem alloc] initWithTitle:@"Set Screen Size..." action:@selector(setScreenSize:) keyEquivalent:@""];
+	[screenItem setTarget:self];
+	[settingsMenu addItem:screenItem];
+	
+	NSMenuItem *networkItem = [[NSMenuItem alloc] initWithTitle:@"Configure Network..." action:@selector(configureNetwork:) keyEquivalent:@""];
+	[networkItem setTarget:self];
+	[settingsMenu addItem:networkItem];
+	
+	// Add separator
+	[settingsMenu addItem:[NSMenuItem separatorItem]];
+	
+	NSMenuItem *savePrefsItem = [[NSMenuItem alloc] initWithTitle:@"Save Preferences" action:@selector(savePreferences:) keyEquivalent:@""];
+	[savePrefsItem setTarget:self];
+	[settingsMenu addItem:savePrefsItem];
+	
+	// Insert Settings menu before Help menu
+	NSInteger helpIndex = [mainMenu indexOfItemWithTitle:@"Help"];
+	if (helpIndex >= 0) {
+		[mainMenu insertItem:settingsMenuItem atIndex:helpIndex];
+	} else {
+		[mainMenu addItem:settingsMenuItem];
+	}
+	
+	[romItem release];
+	[diskItem release];
+	[memoryItem release];
+	[screenItem release];
+	[networkItem release];
+	[savePrefsItem release];
+	[settingsMenuItem release];
+	[settingsMenu release];
+}
+
 
 // Methods invoked by buttons & menu items
+
+- (IBAction) selectROMFile: (id)sender
+{
+	NSOpenPanel *openPanel = [NSOpenPanel openPanel];
+	[openPanel setCanChooseFiles:YES];
+	[openPanel setCanChooseDirectories:NO];
+	[openPanel setAllowsMultipleSelection:NO];
+	[openPanel setTitle:@"Select ROM File"];
+	[openPanel setMessage:@"Select a Macintosh ROM file (e.g., Quadra-650.ROM, Centris.ROM)"];
+	[openPanel setPrompt:@"Select"];
+	
+	[openPanel beginSheetModalForWindow:win completionHandler:^(NSModalResponse result) {
+		if (result == NSModalResponseOK) {
+			NSURL *selectedURL = [[openPanel URLs] firstObject];
+			NSString *path = [selectedURL path];
+			const char *rom_path = [path UTF8String];
+			PrefsReplaceString("rom", rom_path);
+			SavePrefs();
+			
+			NSAlert *alert = [[NSAlert alloc] init];
+			[alert setMessageText:@"ROM File Selected"];
+			[alert setInformativeText:@"ROM file has been saved. Please restart Basilisk II to use the new ROM."];
+			[alert addButtonWithTitle:@"OK"];
+			[alert runModal];
+			[alert release];
+		}
+	}];
+}
+
+- (IBAction) selectDiskImage: (id)sender
+{
+	NSOpenPanel *openPanel = [NSOpenPanel openPanel];
+	[openPanel setCanChooseFiles:YES];
+	[openPanel setCanChooseDirectories:NO];
+	[openPanel setAllowsMultipleSelection:NO];
+	[openPanel setTitle:@"Select Disk Image"];
+	[openPanel setMessage:@"Select a disk image file to mount (e.g., .hdf, .dsk, .iso)"];
+	[openPanel setPrompt:@"Mount"];
+	
+	[openPanel beginSheetModalForWindow:win completionHandler:^(NSModalResponse result) {
+		if (result == NSModalResponseOK) {
+			NSURL *selectedURL = [[openPanel URLs] firstObject];
+			NSString *path = [selectedURL path];
+			const char *disk_path = [path UTF8String];
+			
+			// Add to disk preferences
+			const char *existing_disks = PrefsFindString("disk");
+			if (existing_disks) {
+				// For now, just replace the first disk
+				PrefsReplaceString("disk", disk_path);
+			} else {
+				PrefsAddString("disk", disk_path);
+			}
+			SavePrefs();
+			
+			NSAlert *alert = [[NSAlert alloc] init];
+			[alert setMessageText:@"Disk Image Mounted"];
+			[alert setInformativeText:@"Disk image has been added to preferences. Restart Basilisk II to mount the new disk."];
+			[alert addButtonWithTitle:@"OK"];
+			[alert runModal];
+			[alert release];
+		}
+	}];
+}
+
+- (IBAction) setMemorySize: (id)sender
+{
+	NSAlert *alert = [[NSAlert alloc] init];
+	[alert setMessageText:@"Set Memory Size"];
+	[alert setInformativeText:@"Enter memory size in MB (recommended: 8-64)"];
+	[alert addButtonWithTitle:@"OK"];
+	[alert addButtonWithTitle:@"Cancel"];
+	
+	NSTextField *input = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 200, 24)];
+	[input setStringValue:[NSString stringWithFormat:@"%d", PrefsFindInt32("ramsize") / (1024*1024)]];
+	[alert setAccessoryView:input];
+	
+	[alert beginSheetModalForWindow:win completionHandler:^(NSModalResponse result) {
+		if (result == NSAlertFirstButtonReturn) {
+			int memoryMB = [input intValue];
+			if (memoryMB > 0 && memoryMB <= 1024) {
+				PrefsReplaceInt32("ramsize", memoryMB * 1024 * 1024);
+				SavePrefs();
+				
+				NSAlert *confirm = [[NSAlert alloc] init];
+				[confirm setMessageText:@"Memory Size Updated"];
+				[confirm setInformativeText:[NSString stringWithFormat:@"Memory size set to %d MB. Restart Basilisk II to apply changes.", memoryMB]];
+				[confirm addButtonWithTitle:@"OK"];
+				[confirm runModal];
+				[confirm release];
+			}
+		}
+		[input release];
+		[alert release];
+	}];
+}
+
+- (IBAction) setScreenSize: (id)sender
+{
+	NSAlert *alert = [[NSAlert alloc] init];
+	[alert setMessageText:@"Set Screen Size"];
+	[alert setInformativeText:@"Select screen dimensions:"];
+	[alert addButtonWithTitle:@"512x384"];
+	[alert addButtonWithTitle:@"640x480"];
+	[alert addButtonWithTitle:@"800x600"];
+	[alert addButtonWithTitle:@"1024x768"];
+	[alert addButtonWithTitle:@"Cancel"];
+	
+	[alert beginSheetModalForWindow:win completionHandler:^(NSModalResponse result) {
+		if (result <= NSAlertThirdButtonReturn) {
+			const char *width_height[] = {"512 384", "640 480", "800 600", "1024 768"};
+			const char *selected = width_height[result - NSAlertFirstButtonReturn];
+			PrefsReplaceString("screen", selected);
+			SavePrefs();
+			
+			NSAlert *confirm = [[NSAlert alloc] init];
+			[confirm setMessageText:@"Screen Size Updated"];
+			[confirm setInformativeText:[NSString stringWithFormat:@"Screen size set to %s. Restart Basilisk II to apply changes.", selected]];
+			[confirm addButtonWithTitle:@"OK"];
+			[confirm runModal];
+			[confirm release];
+		}
+		[alert release];
+	}];
+}
+
+- (IBAction) configureNetwork: (id)sender
+{
+	NSAlert *alert = [[NSAlert alloc] init];
+	[alert setMessageText:@"Configure Network"];
+	[alert setInformativeText:@"Network configuration requires manual editing of preferences file for advanced options. Basic networking is enabled by default."];
+	[alert addButtonWithTitle:@"OK"];
+	[alert runModal];
+	[alert release];
+}
+
+- (IBAction) savePreferences: (id)sender
+{
+	SavePrefs();
+	
+	NSAlert *alert = [[NSAlert alloc] init];
+	[alert setMessageText:@"Preferences Saved"];
+	[alert setInformativeText:@"Current settings have been saved to .basilisk_ii_prefs file."];
+	[alert addButtonWithTitle:@"OK"];
+	[alert runModal];
+	[alert release];
+}
 
 - (IBAction) Benchmark:	(id)sender;
 {

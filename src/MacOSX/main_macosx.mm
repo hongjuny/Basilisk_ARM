@@ -221,98 +221,15 @@ static void usage(const char *prg_name)
 
 int main(int argc, char **argv)
 {
-	const char *vmdir = NULL;
-	char str[256];
-
-	// Initialize variables
-	RAMBaseHost = NULL;
-	ROMBaseHost = NULL;
-	srand(time(NULL));
-	tzset();
-
-	// Print some info
-	printf(GetString(STR_ABOUT_TEXT1), VERSION_MAJOR, VERSION_MINOR);
-	printf(" %s\n", GetString(STR_ABOUT_TEXT2));
-
-	// Parse command line arguments
-	for (int i=1; i<argc; i++) {
-		if (strcmp(argv[i], "--help") == 0) {
-			usage(argv[0]);
-		} else if (strncmp(argv[i], "-psn_", 5) == 0) {// OS X process identifier
-			argv[i++] = NULL;
-		} else if (strcmp(argv[i], "--break") == 0) {
-			argv[i++] = NULL;
-			if (i < argc) {
-				ROMBreakpoint = strtol(argv[i], NULL, 0);
-				argv[i] = NULL;
-			}
-		} else if (strcmp(argv[i], "--config") == 0) {
-			argv[i++] = NULL;
-			if (i < argc) {
-				extern string UserPrefsPath; // from prefs_unix.cpp
-				UserPrefsPath = argv[i];
-				argv[i] = NULL;
-			}
-		} else if (strcmp(argv[i], "--rominfo") == 0) {
-			argv[i] = NULL;
-			PrintROMInfo = true;
-		}
-	}
-
-	// Remove processed arguments
-	for (int i=1; i<argc; i++) {
-		int k;
-		for (k=i; k<argc; k++)
-			if (argv[k] != NULL)
-				break;
-		if (k > i) {
-			k -= i;
-			for (int j=i+k; j<argc; j++)
-				argv[j-k] = argv[j];
-			argc -= k;
-		}
-	}
-
+	printf("Basilisk II starting...\n");
+	
 	// Read preferences
-	PrefsInit(vmdir, argc, argv);
-
-	// Any command line arguments left?
-	for (int i=1; i<argc; i++) {
-		if (argv[i][0] == '-') {
-			fprintf(stderr, "Unrecognized option '%s'\n", argv[i]);
-			usage(argv[0]);
-		}
-	}
-
-	// Init system routines
-	SysInit();
-
-	// Set the current directory somewhere useful.
-	// Handy for storing the ROM file
-	bundle = strstr(argv[0], "BasiliskII.app/Contents/MacOS/BasiliskII");
-	if (bundle)
-	{
-		while (*bundle != '/')
-			++bundle;
-
-		*bundle = 0;  // Throw away Contents/... on end of argv[0]
-		bundle = argv[0];
-
-		chdir(bundle);
-	}
-
-	// Open display, attach to window server,
-	// load pre-instantiated classes from MainMenu.nib, start run loop
-	int i = NSApplicationMain(argc, (const char **)argv);
-	// We currently never get past here, because QuitEmulator() does an exit()
-
-	// Exit system routines
-	SysExit();
-
-	// Exit preferences
-	PrefsExit();
-
-	return i;
+	PrefsInit(NULL, argc, argv);
+	
+	// Open display and start application
+	NSApplicationMain(argc, (const char **)argv);
+	
+	return 0;
 }
 
 #define QuitEmulator()	{ QuitEmuNoExit() ; return NO; }
@@ -432,37 +349,26 @@ bool InitEmulator (void)
 	int rom_fd = -1;
 	
 	// Try to open ROM file
+	printf("DEBUG: InitEmulator called, checking ROM\n");
 	if (rom_path) {
+		printf("DEBUG: InitEmulator - ROM path from prefs: %s\n", rom_path);
 		rom_fd = open(rom_path, O_RDONLY);
+		printf("DEBUG: InitEmulator - ROM file open result: %d\n", rom_fd);
+	} else {
+		printf("DEBUG: InitEmulator - No ROM path in prefs\n");
 	}
 	if (rom_fd < 0 && !rom_path) {
+		printf("DEBUG: InitEmulator - Trying default ROM file\n");
 		rom_fd = open(ROM_FILE_NAME, O_RDONLY);
+		printf("DEBUG: InitEmulator - Default ROM open result: %d\n", rom_fd);
 	}
 	
-	// If ROM file not found, prompt user to select one
 	if (rom_fd < 0) {
-		NSOpenPanel *openPanel = [NSOpenPanel openPanel];
-		[openPanel setCanChooseFiles:YES];
-		[openPanel setCanChooseDirectories:NO];
-		[openPanel setAllowsMultipleSelection:NO];
-		[openPanel setTitle:@"Select ROM File"];
-		[openPanel setMessage:@"Basilisk II needs a Macintosh ROM file to run.\nPlease select a ROM file (e.g., Quadra-650.ROM, Centris.ROM)"];
-		[openPanel setPrompt:@"Select"];
-		
-		if ([openPanel runModal] == NSModalResponseOK) {
-			NSURL *selectedURL = [[openPanel URLs] firstObject];
-			NSString *path = [selectedURL path];
-			rom_path = [path UTF8String];
-			PrefsReplaceString("rom", rom_path);
-			SavePrefs();
-			rom_fd = open(rom_path, O_RDONLY);
-		}
-		
-		if (rom_fd < 0) {
-			ErrorAlert("No ROM file selected. Cannot start emulator.");
-			QuitEmulator();
-		}
+		printf("DEBUG: InitEmulator - ROM file not found, error\n");
+		ErrorAlert("ROM file not found. Please copy MAC.ROM to the application directory.");
+		QuitEmulator();
 	}
+	
 	printf(GetString(STR_READING_ROM_FILE));
 	ROMSize = lseek(rom_fd, 0, SEEK_END);
 	if (ROMSize != 64*1024 && ROMSize != 128*1024 && ROMSize != 256*1024 && ROMSize != 512*1024 && ROMSize != 1024*1024) {
@@ -472,11 +378,11 @@ bool InitEmulator (void)
 	}
 	lseek(rom_fd, 0, SEEK_SET);
 	if (read(rom_fd, ROMBaseHost, ROMSize) != (ssize_t)ROMSize) {
-		ErrorAlert(STR_ROM_FILE_READ_ERR);
+		ErrorAlert(STR_ROM_READ_ERR);
 		close(rom_fd);
 		QuitEmulator();
 	}
-
+	close(rom_fd);
 
 	// Initialize everything
 	if (!InitAll(vmdir))
