@@ -228,10 +228,47 @@ brew reinstall sdl2
 3. **Close other applications** to free memory
 4. **Try lower resolution** or color depth
 
+## Acknowledgements
+
+This Apple Silicon fork is based on the original Basilisk II project. 
+Special thanks to the original contributors who made this emulator possible:
+
+### Original Basilisk II Contributors (in alphabetical order):
+- **Orlando Bassotto**: FreeBSD support
+- **Gwenolé Beauchesne**: SPARC assembly optimizations, Unix video code, JIT compiler fixes
+- **Marc Chabanas**: Solaris sound support
+- **Marc Hellwig**: audio output, BeOS video code and networking
+- **Bill Huey**: 15/16 bit DGA and 15/16/32 bit X11 window support
+- **Brian J. Johnson**: IRIX support
+- **Jürgen Lachmann**: AmigaOS CyberGraphX support
+- **Samuel Lander**: tile-based window refresh code
+- **David Lawrence**: incremental window refresh code
+- **Bernie Meyer**: original UAE-JIT code
+- **Nigel Pearson**: Mac OS X port
+- **Lauri Pesonen**: Windows NT port
+- **Bernd Schmidt**: UAE 68k emulation
+- **Michael Z. Sliczniak**: Mach memory fault recovery
+- and many others...
+
+### Special Thanks:
+- **Bernd Schmidt** for letting us use his UAE 68k emulation
+- **Daniel Bobbert** for technical documentation contributions
+- **All ShapeShifter and SheepShaver users and beta testers**
+- **Apple Computer Inc.**, who made writing a Macintosh emulator possible
+
+### Apple Silicon Modernization
+Modernized for Apple Silicon Macs by Hong-Jun Yoon with:
+- ARM64 native support (no Rosetta required)
+- Modern Xcode project integration
+- SDL2 audio/video framework
+- macOS 11+ compatibility
+- Enhanced performance optimizations
+
 ## License
 
 This project maintains the original Basilisk II license. See `COPYING` for details.
 
 ---
+ 
 
 **Note**: This is a modernized fork of the original Basilisk II for Apple Silicon Macs. Performance and compatibility may vary depending on your specific hardware and ROM configuration.
