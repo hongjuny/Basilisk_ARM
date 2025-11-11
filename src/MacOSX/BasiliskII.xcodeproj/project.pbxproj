@@ -1088,6 +1088,7 @@
 				SDKROOT = macosx;
 				USE_HEADERMAP = YES;
 				WARNING_CFLAGS = "";
+				CONFIGURATION_BUILD_DIR = "$(SRCROOT)/../../Build/Debug";
 			};
 			name = Debug;
 		};
@@ -1134,6 +1135,7 @@
 					../MacOSX,
 					../include,
 					../uae_cpu,
+					../slirp,
 					../Unix,
 				);
 				LIBRARY_SEARCH_PATHS = (
@@ -1160,6 +1162,7 @@
 				SDKROOT = macosx;
 				USE_HEADERMAP = YES;
 				WARNING_CFLAGS = "";
+				CONFIGURATION_BUILD_DIR = "$(SRCROOT)/../../Build/Release";
 			};
 			name = Release;
 		};
